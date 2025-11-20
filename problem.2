@@ -1,0 +1,119 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <list>
+using namespace std;
+
+class HashMapChaining {
+public:
+    struct Entry {
+        string key;
+        int value;
+    };
+
+    explicit HashMapChaining(int initialCapacity = 11) : table(initialCapacity), n(0) {}
+
+    bool empty() const {
+        return n == 0;
+    }
+
+    int size() const {
+        return n;
+    }
+
+    bool put(const string& key, int value) {
+        int idx = hashFunction(key);
+        for (auto& e : table[idx]) {
+            if (e.key == key) {
+                e.value = value;
+                return false;
+            }
+        }
+        table[idx].push_back({key, value});
+        n++;
+        if ((double)n / table.size() > loadFactorThreshold) rehash();
+        return true;
+    }
+
+    bool find(const string& key, int& outValue) const {
+        int idx = hashFunction(key);
+        for (const auto& e : table[idx]) {
+            if (e.key == key) {
+                outValue = e.value;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool erase(const string& key) {
+        int idx = hashFunction(key);
+        for (auto it = table[idx].begin(); it != table[idx].end(); ++it) {
+            if (it->key == key) {
+                table[idx].erase(it);
+                n--;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void printTable() const {
+        for (int i = 0; i < table.size(); i++) {
+            cout << i << ":";
+            for (const auto& e : table[i]) {
+                cout << " (" << e.key << "," << e.value << ")";
+            }
+            cout << "\n";
+        }
+    }
+
+private:
+    vector<list<Entry>> table;
+    int n;
+    double loadFactorThreshold = 0.9;
+
+    long long polyHash(const string& s) const {
+        long long h = 0;
+        long long a = 33;
+        for (char c : s) h = h * a + c;
+        return h;
+    }
+
+    int hashFunction(const string& key) const {
+        long long h = polyHash(key);
+        h = h % table.size();
+        if (h < 0) h += table.size();
+        return (int)h;
+    }
+
+    bool isPrime(int x) {
+        if (x < 2) return false;
+        for (int i = 2; i * i <= x; i++) if (x % i == 0) return false;
+        return true;
+    }
+
+    int nextPrime(int x) {
+        while (!isPrime(x)) x++;
+        return x;
+    }
+
+    void rehash() {
+        int newSize = nextPrime(table.size() * 2);
+        vector<list<Entry>> old = table;
+        table.clear();
+        table.resize(newSize);
+        n = 0;
+        for (auto& bucket : old) {
+            for (auto& e : bucket) put(e.key, e.value);
+        }
+    }
+};
+
+int main() {
+    HashMapChaining h;
+    h.put("a", 1);
+    h.put("b", 2);
+    h.put("c", 3);
+    h.printTable();
+}
