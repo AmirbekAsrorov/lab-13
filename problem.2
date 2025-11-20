@@ -10,110 +10,149 @@ public:
         string key;
         int value;
     };
-
-    explicit HashMapChaining(int initialCapacity = 11) : table(initialCapacity), n(0) {}
-
-    bool empty() const {
-        return n == 0;
-    }
-
-    int size() const {
-        return n;
-    }
-
-    bool put(const string& key, int value) {
-        int idx = hashFunction(key);
-        for (auto& e : table[idx]) {
-            if (e.key == key) {
-                e.value = value;
-                return false;
-            }
-        }
-        table[idx].push_back({key, value});
-        n++;
-        if ((double)n / table.size() > loadFactorThreshold) rehash();
-        return true;
-    }
-
-    bool find(const string& key, int& outValue) const {
-        int idx = hashFunction(key);
-        for (const auto& e : table[idx]) {
-            if (e.key == key) {
-                outValue = e.value;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool erase(const string& key) {
-        int idx = hashFunction(key);
-        for (auto it = table[idx].begin(); it != table[idx].end(); ++it) {
-            if (it->key == key) {
-                table[idx].erase(it);
-                n--;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    void printTable() const {
-        for (int i = 0; i < table.size(); i++) {
-            cout << i << ":";
-            for (const auto& e : table[i]) {
-                cout << " (" << e.key << "," << e.value << ")";
-            }
-            cout << "\n";
-        }
-    }
-
+    explicit HashMapChaining(int initialCapacity = 11);
+    bool empty() const;
+    int size() const;
+    bool put(const string& key, int value);
+    bool find(const string& key, int& outValue) const;
+    bool erase(const string& key);
+    void printTable() const;
 private:
     vector<list<Entry>> table;
     int n;
     double loadFactorThreshold = 0.9;
+    int hash(const string& key) const;
+    void rehash();
+    bool isPrime(int x) const;
+    int nextPrime(int x) const;
+};
 
-    long long polyHash(const string& s) const {
-        long long h = 0;
-        long long a = 33;
-        for (char c : s) h = h * a + c;
-        return h;
-    }
+HashMapChaining::HashMapChaining(int initialCapacity)
+    : table(initialCapacity), n(0) {}
 
-    int hashFunction(const string& key) const {
-        long long h = polyHash(key);
-        h = h % table.size();
-        if (h < 0) h += table.size();
-        return (int)h;
-    }
+bool HashMapChaining::empty() const {
+    return n == 0;
+}
 
-    bool isPrime(int x) {
-        if (x < 2) return false;
-        for (int i = 2; i * i <= x; i++) if (x % i == 0) return false;
-        return true;
-    }
+int HashMapChaining::size() const {
+    return n;
+}
 
-    int nextPrime(int x) {
-        while (!isPrime(x)) x++;
-        return x;
-    }
+int HashMapChaining::hash(const string& key) const {
+    long long h = 0;
+    long long a = 33;
+    for (char c : key) h = h * a + c;
+    return (int)(h & 0x7fffffff) % table.size();
+}
 
-    void rehash() {
-        int newSize = nextPrime(table.size() * 2);
-        vector<list<Entry>> old = table;
-        table.clear();
-        table.resize(newSize);
-        n = 0;
-        for (auto& bucket : old) {
-            for (auto& e : bucket) put(e.key, e.value);
+bool HashMapChaining::put(const string& key, int value) {
+    int idx = hash(key);
+    for (auto& e : table[idx]) {
+        if (e.key == key) {
+            e.value = value;
+            return false;
         }
     }
-};
+    table[idx].push_front({key, value});
+    n++;
+    if ((double)n / table.size() > loadFactorThreshold) rehash();
+    return true;
+}
+
+bool HashMapChaining::find(const string& key, int& outValue) const {
+    int idx = hash(key);
+    for (const auto& e : table[idx]) {
+        if (e.key == key) {
+            outValue = e.value;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool HashMapChaining::erase(const string& key) {
+    int idx = hash(key);
+    for (auto it = table[idx].begin(); it != table[idx].end(); it++) {
+        if (it->key == key) {
+            table[idx].erase(it);
+            n--;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool HashMapChaining::isPrime(int x) const {
+    if (x < 2) return false;
+    for (int i = 2; i * i <= x; i++) {
+        if (x % i == 0) return false;
+    }
+    return true;
+}
+
+int HashMapChaining::nextPrime(int x) const {
+    while (!isPrime(x)) x++;
+    return x;
+}
+
+void HashMapChaining::rehash() {
+    int newCap = nextPrime(table.size() * 2);
+    vector<list<Entry>> oldTable = table;
+    table.clear();
+    table.resize(newCap);
+    n = 0;
+    for (const auto& bucket : oldTable) {
+        for (const auto& e : bucket) {
+            put(e.key, e.value);
+        }
+    }
+}
+
+void HashMapChaining::printTable() const {
+    for (int i = 0; i < table.size(); i++) {
+        cout << i << ":";
+        for (const auto& e : table[i]) {
+            cout << " (" << e.key << "," << e.value << ")";
+        }
+        cout << endl;
+    }
+}
 
 int main() {
     HashMapChaining h;
-    h.put("a", 1);
-    h.put("b", 2);
-    h.put("c", 3);
-    h.printTable();
+    int choice;
+
+    while (true) {
+        cout << "\n1 Put\n2 Find\n3 Erase\n4 Print\n5 Size\n6 Exit\n";
+        cin >> choice;
+
+        if (choice == 1) {
+            string k;
+            int v;
+            cin >> k >> v;
+            h.put(k, v);
+        }
+        else if (choice == 2) {
+            string k;
+            int v;
+            cin >> k;
+            if (h.find(k, v)) cout << v << endl;
+            else cout << "Not found\n";
+        }
+        else if (choice == 3) {
+            string k;
+            cin >> k;
+            if (h.erase(k)) cout << "Erased\n";
+            else cout << "Not found\n";
+        }
+        else if (choice == 4) {
+            h.printTable();
+        }
+        else if (choice == 5) {
+            cout << h.size() << endl;
+        }
+        else if (choice == 6) {
+            break;
+        }
+    }
 }
