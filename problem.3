@@ -1,0 +1,118 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <optional>
+
+using namespace std;
+
+class HashMapLinearProbing {
+public:
+    struct Entry {
+        string key;
+        int value;
+        bool operator==(const Entry& other) const {
+            return key == other.key && value == other.value;
+        }
+    };
+
+    explicit HashMapLinearProbing(int capacity = 13) : table(capacity), n(capacity) {}
+
+    bool put(const string& key, int value) {
+        int idx = hash(key);
+        int startIdx = idx;
+        do {
+            if (!table[idx].has_value() || table[idx] == AVAILABLE) {
+                table[idx] = Entry{key, value};
+                return true;
+            } else if (table[idx]->key == key) {
+                table[idx]->value = value;
+                return true;
+            }
+            idx = (idx + 1) % n;
+        } while (idx != startIdx);
+        return false;
+    }
+
+    bool find(const string& key, int& outValue) const {
+        int idx = hash(key);
+        int startIdx = idx;
+        do {
+            if (!table[idx].has_value()) return false;
+            if (table[idx] != AVAILABLE && table[idx]->key == key) {
+                outValue = table[idx]->value;
+                return true;
+            }
+            idx = (idx + 1) % n;
+        } while (idx != startIdx);
+        return false;
+    }
+
+    bool erase(const string& key) {
+        int idx = hash(key);
+        int startIdx = idx;
+        do {
+            if (!table[idx].has_value()) return false;
+            if (table[idx] != AVAILABLE && table[idx]->key == key) {
+                table[idx] = AVAILABLE;
+                return true;
+            }
+            idx = (idx + 1) % n;
+        } while (idx != startIdx);
+        return false;
+    }
+
+    void printTable() const {
+        for (int i = 0; i < n; ++i) {
+            if (!table[i].has_value()) cout << i << ": EMPTY\n";
+            else if (table[i] == AVAILABLE) cout << i << ": AVAILABLE\n";
+            else cout << i << ": " << table[i]->key << " -> " << table[i]->value << "\n";
+        }
+    }
+
+private:
+    vector<optional<Entry>> table;
+    static Entry AVAILABLE;
+    int n;
+
+    int hash(const string& key) const {
+        int h = 0;
+        for (char c : key) h = (h * 31 + c) % n;
+        return h;
+    }
+};
+
+HashMapLinearProbing::Entry HashMapLinearProbing::AVAILABLE = {"", -1};
+
+int main() {
+    HashMapLinearProbing map;
+    int choice;
+    string key;
+    int value;
+
+    while (true) {
+        cout << "\n1. Insert\n2. Find\n3. Delete\n4. Print\n5. Exit\nChoice: ";
+        cin >> choice;
+        switch (choice) {
+            case 1:
+                cout << "Key: "; cin >> key;
+                cout << "Value: "; cin >> value;
+                map.put(key, value);
+                break;
+            case 2:
+                cout << "Key: "; cin >> key;
+                if (map.find(key, value)) cout << "Found: " << value << endl;
+                else cout << "Not Found" << endl;
+                break;
+            case 3:
+                cout << "Key: "; cin >> key;
+                if (map.erase(key)) cout << "Deleted\n";
+                else cout << "Not Found\n";
+                break;
+            case 4:
+                map.printTable();
+                break;
+            case 5:
+                return 0;
+        }
+    }
+}
