@@ -1,0 +1,131 @@
+#include <iostream>
+#include <string>
+using namespace std;
+
+class ListMap {
+public:
+    struct Entry {
+        string key;
+        int value;
+        Entry* next;
+        Entry(const string& k, int v, Entry* n = nullptr)
+            : key(k), value(v), next(n) {}
+    };
+
+    ListMap();
+    ~ListMap();
+    bool empty() const;
+    int size() const;
+    bool put(const string& key, int value);
+    Entry* find(const string& key) const;
+    bool erase(const string& key);
+    void print() const;
+
+private:
+    Entry* head;
+    int n;
+};
+
+ListMap::ListMap() : head(nullptr), n(0) {}
+
+ListMap::~ListMap() {
+    Entry* cur = head;
+    while (cur) {
+        Entry* tmp = cur;
+        cur = cur->next;
+        delete tmp;
+    }
+}
+
+bool ListMap::empty() const {
+    return n == 0;
+}
+
+int ListMap::size() const {
+    return n;
+}
+
+ListMap::Entry* ListMap::find(const string& key) const {
+    Entry* cur = head;
+    while (cur) {
+        if (cur->key == key) return cur;
+        cur = cur->next;
+    }
+    return nullptr;
+}
+
+bool ListMap::put(const string& key, int value) {
+    Entry* cur = find(key);
+    if (cur) {
+        cur->value = value;
+        return false;
+    }
+    head = new Entry(key, value, head);
+    n++;
+    return true;
+}
+
+bool ListMap::erase(const string& key) {
+    Entry* cur = head;
+    Entry* prev = nullptr;
+
+    while (cur) {
+        if (cur->key == key) {
+            if (prev) prev->next = cur->next;
+            else head = cur->next;
+            delete cur;
+            n--;
+            return true;
+        }
+        prev = cur;
+        cur = cur->next;
+    }
+    return false;
+}
+
+void ListMap::print() const {
+    Entry* cur = head;
+    while (cur) {
+        cout << cur->key << " : " << cur->value << endl;
+        cur = cur->next;
+    }
+}
+
+int main() {
+    ListMap m;
+    int choice;
+
+    while (true) {
+        cout << "\n1 Put\n2 Find\n3 Erase\n4 Print\n5 Size\n6 Exit\n";
+        cin >> choice;
+
+        if (choice == 1) {
+            string key;
+            int value;
+            cin >> key >> value;
+            m.put(key, value);
+        }
+        else if (choice == 2) {
+            string key;
+            cin >> key;
+            auto e = m.find(key);
+            if (e) cout << e->value << endl;
+            else cout << "Not found\n";
+        }
+        else if (choice == 3) {
+            string key;
+            cin >> key;
+            if (m.erase(key)) cout << "Erased\n";
+            else cout << "Not found\n";
+        }
+        else if (choice == 4) {
+            m.print();
+        }
+        else if (choice == 5) {
+            cout << m.size() << endl;
+        }
+        else if (choice == 6) {
+            break;
+        }
+    }
+}
